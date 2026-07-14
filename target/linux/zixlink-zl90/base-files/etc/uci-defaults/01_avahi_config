@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# check if router avahi config setted
+
+if [ -f "/etc/avahi/avahi-daemon.conf" ]; then
+	if [ ! "$(cmp -s '/etc/avahi/avahi-daemon.conf' '/etc/avahi/router-avahi-daemon.conf')" ]; then
+		cp "/etc/avahi/router-avahi-daemon.conf" "/etc/avahi/avahi-daemon.conf"
+		
+		if [ -n "$(pgrep avahi-daemon)" ]; then
+			/etc/init.d/avahi-daemon restart
+		else
+			/etc/init.d/avahi-daemon start
+		fi
+	fi
+fi
+
+exit 1

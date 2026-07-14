@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Copyright (C) 2013-2015 OpenWrt.org
+#
+
+. /lib/functions/uci-defaults.sh
+
+board_config_update
+
+#                     name    title      led     dev
+#ucidef_set_led_netdev "eth0"  "ETH0 LED" "eth0"  "eth0"
+#ucidef_set_led_netdev "eth1"  "ETH1 LED" "eth1"  "eth1"
+
+board_config_flush
+
+exit 0

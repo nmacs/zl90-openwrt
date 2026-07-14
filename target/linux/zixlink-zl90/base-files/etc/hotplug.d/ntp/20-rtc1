@@ -1,0 +1,3 @@
+RTC_DEV="/dev/rtc1"
+
+[ "$ACTION" = "step" ] || [ "$ACTION" = "stratum" ] && /sbin/hwclock -u -f $RTC_DEV -w && logger -t sysfixtime "$RTC_DEV - update HW clock from NTP."

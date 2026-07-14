@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Copyright (C) 2013-2015 OpenWrt.org
+#
+
+[ -s /data/userdata/device_serial ] || exit 1
+
+serial=$(cat /data/userdata/device_serial)
+serial=$(printf "%06i" $serial)
+
+uci set system.@system[-1].hostname="zl90_$serial"
+uci commit
+
+exit 0

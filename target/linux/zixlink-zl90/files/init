@@ -1,0 +1,187 @@
+#!/bin/sh
+
+ROOTFS_MTDBLOCK_A="/dev/mtdblock6"
+ROOTFS_MTDBLOCK_B="/dev/mtdblock8"
+
+ROOTFS_MTD_A="/dev/mtd6"
+ROOTFS_MTD_B="/dev/mtd8"
+
+ROOTFS_MOUNT_POINT="/ro"
+
+USERDATA_MTD_NUM="9"
+USERDATA_MTD_DEV="/dev/mtd${USERDATA_MTD_NUM}"
+USERDATA_MTD_BLOCK="/dev/mtdblock${USERDATA_MTD_NUM}"
+USERDATA_UBI_DEV_NUM="0"
+USERDATA_VOLUME_NAME="data"
+USERDATA_MOUNT_POINT="/rw"
+
+FACTORY_DIR="${USERDATA_MOUNT_POINT}/factory"
+USERDATA_OVERLAY="${USERDATA_MOUNT_POINT}/overlay"
+USERDATA_UPPER="${USERDATA_OVERLAY}/upper"
+USERDATA_WORK="${USERDATA_OVERLAY}/work"
+
+ubifscreate() {
+	echo "ubiattach UBI with $USERDATA_MTD_DEV..."
+	ubiattach -m "$USERDATA_MTD_NUM" -d "$USERDATA_UBI_DEV_NUM"
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		echo "ubiattach error! ($ret)"
+		echo "Erase $USERDATA_MTD_DEV..."
+		flash_eraseall "$USERDATA_MTD_DEV"
+		if [ $? -ne 0 ]; then
+				echo "MTD erasing error!"
+				return 1
+		fi
+		
+		echo "repeat ubiattach UBI with $USERDATA_MTD_DEV..."
+		ubiattach -m "$USERDATA_MTD_NUM" -d "$USERDATA_UBI_DEV_NUM"
+		if [ $? -ne 0 ]; then
+			echo "ubiattach error!"
+			return 1
+		fi
+	fi
+	
+	if [ -e "/dev/ubi${USERDATA_UBI_DEV_NUM}_0" ]; then
+		echo "UBI-volume $USERDATA_VOLUME_NAME exists"
+	else
+		echo "Create volume $USERDATA_VOLUME_NAME..."
+		
+		ubimkvol "/dev/ubi${USERDATA_UBI_DEV_NUM}" -N "$USERDATA_VOLUME_NAME" -m
+		if [ $? -ne 0 ]; then
+				echo "ubimkvol error!"
+				return 1
+		fi
+		
+		ERASE_BLOCK_SIZE=$(( $(mtdinfo "$USERDATA_MTD_DEV" | grep "Eraseblock size" | awk '{print $3}') - 4096 ))
+		MIN_IO_SIZE=$(( $(mtdinfo "$USERDATA_MTD_DEV" | grep "Minimum input/output unit size" | awk '{print $5}') - 0 ))
+		MAX_LEB_COUNT=$(( $(mtdinfo "$USERDATA_MTD_DEV" | grep "Amount of eraseblocks" | awk '{print $4}') - 10 ))
+		
+		echo "NAND:"
+		echo " - ERASE_BLOCK_SIZE: $ERASE_BLOCK_SIZE"
+		echo " - MIN_IO_SIZE: $MIN_IO_SIZE"
+		echo " - MAX_LEB_COUNT: $MAX_LEB_COUNT"
+
+		echo "UBIFS formatting..."
+		mkfs.ubifs -m "$MIN_IO_SIZE" -e "$ERASE_BLOCK_SIZE" -c "$MAX_LEB_COUNT" -o /tmp/ubifs.img
+		if [ $? -ne 0 ]; then
+				echo "mkfs.ubifs error!"
+				return 1
+		fi
+
+		echo "ubiupdatevol..."
+		ubiupdatevol "/dev/ubi${USERDATA_UBI_DEV_NUM}_0" /tmp/ubifs.img
+		if [ $? -ne 0 ]; then
+				echo "ubiupdatevol error!"
+				return 1
+		fi
+		rm -f /tmp/ubifs.img
+	fi
+	
+	echo "Mount UBIFS to $USERDATA_MOUNT_POINT..."
+	mkdir -p "$USERDATA_MOUNT_POINT"
+	mount -t ubifs "ubi${USERDATA_UBI_DEV_NUM}:$USERDATA_VOLUME_NAME" "$USERDATA_MOUNT_POINT"
+	if [ $? -eq 0 ]; then
+			echo "UBIFS succesfully mounted to $USERDATA_MOUNT_POINT"
+	else
+			echo "mount error!"
+			return 1
+	fi
+	
+	#echo "New ubifs created. Copying /etc data..."
+	#mkdir -p $USERDATA_MOUNT_POINT/etc/
+	#cp -an $ROOTFS_MOUNT_POINT/etc/* $USERDATA_MOUNT_POINT/etc/
+
+	return 0
+}
+
+jffs2create() {
+	echo "Mount UBIFS to $USERDATA_MOUNT_POINT..."
+	mkdir -p "$USERDATA_MOUNT_POINT"
+	
+	if mount -t jffs2 $USERDATA_MTD_BLOCK $USERDATA_MOUNT_POINT; then
+		echo "JFFS2 mounted successfully."
+	else
+		echo "Mount failed. Formatting and creating new JFFS2..."
+		
+		flash_eraseall $USERDATA_MTD_DEV
+		
+		if mount -t jffs2 $USERDATA_MTD_BLOCK $USERDATA_MOUNT_POINT; then
+			echo "JFFS2 mounted successfully p2."
+		else
+			echo "CRITICAL: Could not create JFFS2 on $MTD_DEV"
+		fi
+	fi
+	
+	#echo "New JFFS2 created. Copying /etc data..."
+	#mkdir -p $USERDATA_MOUNT_POINT/etc/
+	#cp -an $ROOTFS_MOUNT_POINT/etc/* $USERDATA_MOUNT_POINT/etc/
+}
+
+echo "Mount base fs"
+
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+mount -t devtmpfs devtmpfs /dev 
+
+BOOT_MTD=$ROOTFS_MTD_A
+BOOT_BANK=$(cat /proc/cmdline | sed 's/.*android_slotsufix=\([^ ]*\).*/\1/')
+
+echo "Current boot bank: $BOOT_BANK"
+if [ "$BOOT_BANK" = "_a" ]; then
+	BOOT_MTD=$ROOTFS_MTDBLOCK_A
+elif [ "$BOOT_BANK" = "_b" ]; then
+	BOOT_MTD=$ROOTFS_MTDBLOCK_B
+else
+	echo "Unknown bank $BOOT_BANK"
+	exit 1
+fi
+
+while [ ! -e "$BOOT_MTD" ]; do usleep 10000; done
+
+echo "Mount rootfs ${BOOT_MTD}!"
+
+mkdir -p $ROOTFS_MOUNT_POINT
+if ! mount -t squashfs -o ro ${BOOT_MTD} $ROOTFS_MOUNT_POINT; then
+	echo "CRITICAL: Failed to mount SquashFS!"
+	exit 1
+fi
+
+echo "Rootfs was mounted!"
+echo "Wait for $USERDATA_MTD_DEV"
+
+while [ ! -e "$USERDATA_MTD_DEV" ]; do usleep 10000; done
+
+ubifscreate
+ret=$?
+
+if [ $ret -ne 0 ]; then
+	echo "Fail to mount userdata"
+	exit 1
+else
+	mkdir -p $FACTORY_DIR
+	mkdir -p $USERDATA_UPPER
+	rm -rf $USERDATA_WORK
+	mkdir -p $USERDATA_WORK
+	
+	mount -t overlay overlay -o lowerdir=$ROOTFS_MOUNT_POINT/etc,upperdir="$USERDATA_UPPER",workdir="$USERDATA_WORK",index=off,metacopy=off,uuid=null,nfs_export=off,redirect_dir=off $ROOTFS_MOUNT_POINT/etc
+	if [ $? -eq 0 ]; then
+		echo "Overlay successfully mounted"
+	else
+		echo "Failed to mount overlay"
+		exit 1
+	fi
+
+	echo "Switching to new root..."
+
+	mount --bind $USERDATA_OVERLAY $ROOTFS_MOUNT_POINT/overlay
+	
+	mkdir -p $ROOTFS_MOUNT_POINT/factory
+	mount --bind $FACTORY_DIR $ROOTFS_MOUNT_POINT/factory
+	mount -o remount,ro,bind $ROOTFS_MOUNT_POINT/factory
+	
+	mount --move /sys $ROOTFS_MOUNT_POINT/sys
+	mount --move /proc $ROOTFS_MOUNT_POINT/proc
+	mount --move /dev $ROOTFS_MOUNT_POINT/dev
+
+	exec switch_root $ROOTFS_MOUNT_POINT /sbin/init
+fi

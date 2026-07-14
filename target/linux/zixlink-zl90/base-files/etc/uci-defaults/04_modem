@@ -1,0 +1,60 @@
+#!/bin/sh
+
+. /usr/share/libubox/jshn.sh
+
+uci set network.broadband='interface'
+uci set network.broadband.proto='mm_dualsim'
+uci set network.broadband._modem_name='SimCom A7602E'
+uci set network.broadband._modem_device='/sys/devices/platform/usbdrd/ffb00000.usb/xhci-hcd.0.auto/usb1/1-1/1-1.2'
+uci set network.broadband._modem_ifname='ppp0'
+
+uci set network.broadband.device='/sys/devices/platform/usbdrd/ffb00000.usb/xhci-hcd.0.auto/usb1/1-1/1-1.2'
+
+uci set network.broadband.sim_priority='1'
+uci set network.broadband.sim_switch_timeout='600'
+uci set network.broadband.sim_switch_retries='3'
+
+uci set network.broadband.startup_delay='5'
+
+uci set network.broadband.sim1_apn='internet'
+uci set network.broadband.sim1_iptype='ipv4v6'
+uci set network.broadband.sim1_auth='none'
+uci set network.broadband.sim1_force_connection='1'
+uci set network.broadband.sim1_signalrate='300'
+
+uci set network.broadband.sim1_ping_monitoring='1'
+uci set network.broadband.sim1_ping_interval='1'
+uci set network.broadband.sim1_ping_timeout='10'
+uci set network.broadband.sim1_ping_packet_size='0'
+uci set network.broadband.sim1_ping_packets_count='3'
+uci add_list network.broadband.sim1_ping_hosts='8.8.8.8'
+uci add_list network.broadband.sim1_ping_hosts='1.1.1.1'
+
+uci set network.broadband.sim1_ping_tcp_port_monitoring='1'
+uci add_list network.broadband.sim1_ping_tcp_port_hosts='google.com:443'
+uci add_list network.broadband.sim1_ping_tcp_port_hosts='google.com:80'
+
+uci set network.broadband.sim2_apn='internet'
+uci set network.broadband.sim2_iptype='ipv4v6'
+uci set network.broadband.sim2_auth='none'
+uci set network.broadband.sim2_force_connection='1'
+uci set network.broadband.sim2_signalrate='300'
+
+uci set network.broadband.sim2_ping_monitoring='1'
+uci set network.broadband.sim2_ping_interval='1'
+uci set network.broadband.sim2_ping_timeout='10'
+uci set network.broadband.sim2_ping_packet_size='0'
+uci set network.broadband.sim2_ping_packets_count='3'
+uci add_list network.broadband.sim2_ping_hosts='8.8.8.8'
+uci add_list network.broadband.sim2_ping_hosts='1.1.1.1'
+
+uci set network.broadband.lowpower='0'
+commit network
+
+uci set modem.general.ifname='ppp0'
+commit modem
+
+uci set firewall.@zone[1].network='ppp0 broadband'
+commit firewall
+	
+exit 0

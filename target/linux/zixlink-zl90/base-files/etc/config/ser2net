@@ -1,0 +1,45 @@
+config ser2net global
+	option enabled 1
+
+config controlport
+	option enabled 0
+	option host localhost
+	option port 2000
+
+config default
+	option speed 115200
+	option databits 8
+	option parity 'none'
+	option stopbits 1
+	option rtscts false
+	option local false
+	option remctl true
+
+config proxy
+	option name 'RS485'
+	option enabled '1'
+	option ip_protocol 'ipv4'
+	option port '5001'
+	option protocol 'raw'
+	option timeout '0'
+	option device '/dev/ttyS0'
+	option baudrate '9600'
+	option databits '8'
+	option parity 'none'
+	option stopbits '1'
+	option xonxoff 'false'
+
+config proxy
+	option name 'RS232'
+	option enabled '1'
+	option ip_protocol 'ipv4'
+	option port '5002'
+	option protocol 'raw'
+	option timeout '0'
+	option device '/dev/ttyS5'
+	option baudrate '9600'
+	option databits '8'
+	option parity 'none'
+	option stopbits '1'
+	option rtscts '1'
+	option xonxoff 'false'

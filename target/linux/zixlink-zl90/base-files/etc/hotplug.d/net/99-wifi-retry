@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ "$ACTION" = "add" ] && [ "$INTERFACE" = "wlan0" ]; then
+	sleep 2
+	logger -t "wifi" "WLAN interface detected, starting wifi..."
+	/sbin/wifi up
+fi

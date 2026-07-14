@@ -1,0 +1,39 @@
+#!/bin/sh
+
+case "$ACTION" in
+pressed)
+	return 10
+;;
+timeout)
+	logger "Recovery button was pressed long time ($SEEN)"
+
+	echo "ERASE" > /dev/console
+	
+	echo none > /sys/class/leds/status/trigger
+	echo none > /sys/class/leds/work/trigger
+	
+	echo 1 > /sys/class/leds/status/brightness
+	echo 1 > /sys/class/leds/work/brightness
+	
+	firstboot
+	exit 0
+;;
+released)
+	if [[ "$SEEN" -ge 5 && "$SEEN" -le 9 ]]; then
+		logger "Recovery button was pressed short time ($SEEN)"
+	
+		echo "REBOOT" > /dev/console
+		
+		echo none > /sys/class/leds/status/trigger
+		echo none > /sys/class/leds/work/trigger
+		
+		echo 0 > /sys/class/leds/status/brightness
+		echo 0 > /sys/class/leds/work/brightness
+		
+		sync
+		reboot
+	fi
+;;
+esac
+
+return 0

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+[ -f /etc/dropbear/authorized_keys -a -f /home/admin/.ssh/authorized_keys ] || exit 1
+
+uci batch <<EOF
+set dropbear.@dropbear[0].RootPasswordAuth='off'
+set dropbear.@dropbear[0].PasswordAuth='off'
+commit
+EOF
+
+exit 0

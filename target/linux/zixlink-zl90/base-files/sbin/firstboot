@@ -1,0 +1,60 @@
+#!/bin/sh
+
+kill_remaining() { # [ <signal> [ <loop> ] ]
+	local loop_limit=10
+
+	local sig="${1:-TERM}"
+	local loop="${2:-0}"
+	local run=true
+	local stat
+	local proc_ppid=$(cut -d' ' -f4  /proc/$$/stat)
+
+	echo -n "Sending $sig to remaining processes ... "
+
+	while $run; do
+		run=false
+		for stat in /proc/[0-9]*/stat; do
+			[ -f "$stat" ] || continue
+
+			local pid name state ppid rest
+			read pid name state ppid rest < $stat
+			name="${name#(}"; name="${name%)}"
+
+			# Skip PID1, our parent, ourself and our children
+			[ $pid -ne 1 -a $pid -ne $proc_ppid -a $pid -ne $$ -a $ppid -ne $$ ] || continue
+
+			local cmdline
+			read cmdline < /proc/$pid/cmdline
+
+			# Skip kernel threads
+			[ -n "$cmdline" ] || continue
+
+			echo -n "$name "
+			kill -$sig $pid 2>/dev/null
+
+			[ $loop -eq 1 ] && run=true
+		done
+
+		let loop_limit--
+		[ $loop_limit -eq 0 ] && {
+			echo
+			echo "Failed to kill all processes."
+			return
+		}
+	done
+	echo
+}
+
+kill_remaining TERM
+sleep 3
+kill_remaining KILL 1
+
+sleep 1
+
+echo "Erase overlay"
+rm -rf /overlay/upper
+rm -rf /overlay/work
+mkdir -p /overlay/upper
+mkdir -p /overlay/work
+
+reboot

@@ -1,0 +1,48 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2013-2014 OpenWrt.org
+
+START=00
+STOP=90
+
+RTC_DEV=/dev/rtc1
+HWCLOCK=/sbin/hwclock
+
+MAX_WAIT=20
+
+boot() {
+	start && exit 0
+
+	local maxtime="$(maxtime)"
+	local curtime="$(date +%s)"
+	[ $curtime -lt $maxtime ] && date -s @$maxtime
+}
+
+start() {
+	count=0
+	while [ ! -e "$RTC_DEV" ] && [ $count -lt $MAX_WAIT ]; do
+		usleep 500000
+		count=$((count + 1))
+	done
+	usleep 500000
+	
+	if [ -e "$RTC_DEV" ]; then
+		[ -e "$RTC_DEV" ] && [ -e "$HWCLOCK" ] && $HWCLOCK -s -u -f $RTC_DEV
+		logger -t sysfixtime "$RTC_DEV - was found, time was restored."
+	else
+		logger -t sysfixtime "$RTC_DEV - not found."
+	fi
+}
+
+stop() {
+	[ -e "$RTC_DEV" ] && [ -e "$HWCLOCK" ] && $HWCLOCK -w -u -f $RTC_DEV && \
+		logger -t sysfixtime "saved '$(date)' to $RTC_DEV"
+}
+
+maxtime() {
+	local file newest
+
+	for file in $( find /etc -type f ) ; do
+		[ -z "$newest" -o "$newest" -ot "$file" ] && newest=$file
+	done
+	[ "$newest" ] && date -r "$newest" +%s
+}
