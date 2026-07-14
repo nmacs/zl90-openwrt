@@ -34,7 +34,9 @@ compose_rootfs_mount_options() {
 }
 
 do_mount_root() {
-	mount_root start "$(compose_rootfs_mount_options)"
+	if [ ! -f "/etc/root_mounted" ]; then
+		mount_root start "$(compose_rootfs_mount_options)"
+	fi
 	boot_run_hook preinit_mount_root
 	[ -f /sysupgrade.tgz -o -f /tmp/sysupgrade.tar ] && {
 		echo "- config restore -"
