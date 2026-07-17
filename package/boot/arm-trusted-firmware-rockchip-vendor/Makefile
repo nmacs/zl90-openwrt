@@ -13,7 +13,7 @@ PKG_RELEASE:=$(AUTORELEASE)
 # make package/arm-trusted-firmware-rockchip-vendor/check FIXUP=1 -j1 V=s
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL=git@github.com:nmacs/zl90-rockchip-rkbin.git
+PKG_SOURCE_URL=https://github.com/nmacs/zl90-rockchip-rkbin
 PKG_MIRROR_HASH:=6b28ab9728cbf3408a3be583be10955e4e9b8c78fc02b771c529cb72f6ccc022
 PKG_SOURCE_DATE:=2025-24-01
 PKG_SOURCE_VERSION:=74213af1e952c4683d2e35952507133b61394862

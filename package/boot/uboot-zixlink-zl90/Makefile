@@ -13,7 +13,7 @@ PKG_RELEASE:=$(AUTORELEASE)
 # make package/uboot-zixlink-zl90/check FIXUP=1 -j1 V=s
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=git@github.com:nmacs/zl90-uboot.git
+PKG_SOURCE_URL:=https://github.com/nmacs/zl90-uboot
 PKG_MIRROR_HASH:=
 PKG_SOURCE_DATE:=2026-07-10
 PKG_SOURCE_VERSION:=917cd54273e6a02f532000c794c52dea7a4a70af
