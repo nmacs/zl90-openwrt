@@ -1,4 +1,6 @@
-src-git packages https://git.openwrt.org/feed/packages.git;openwrt-24.10
-src-git luci https://git.openwrt.org/project/luci.git;openwrt-24.10
+src-git packages https://github.com/nmacs/zl90-openwrt-packages^5271af503423808841557833434a853887f3030b
+src-git luci https://github.com/nmacs/zl90-openwrt-luci^7dfa5e2a3b4c7440dea35bd644bd0f033d877f63
+src-git zixlink https://github.com/nmacs/zl90-openwrt-zixlink^ae9f72c21ea49c29cf5c2acd76f82d6026c3ab68
+
 src-git routing https://git.openwrt.org/feed/routing.git;openwrt-24.10
 src-git telephony https://git.openwrt.org/feed/telephony.git;openwrt-24.10
