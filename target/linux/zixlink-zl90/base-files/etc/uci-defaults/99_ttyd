@@ -1,0 +1,15 @@
+#!/bin/sh
+
+uci get ttyd.@ttyd[0] >/dev/null 2>&1 || exit 0
+
+uci set ttyd.@ttyd[0].ssl='1'
+uci set ttyd.@ttyd[0].ssl_cert='/etc/nginx/conf.d/_lan.crt'
+uci set ttyd.@ttyd[0].ssl_key='/etc/nginx/conf.d/_lan.key'
+
+uci commit ttyd
+
+if [ -x /etc/init.d/ttyd ]; then
+    /etc/init.d/ttyd restart
+fi
+
+exit 0

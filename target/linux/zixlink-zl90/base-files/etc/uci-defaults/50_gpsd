@@ -1,0 +1,17 @@
+#!/bin/sh
+
+uci batch <<EOF
+	set gpsd.core=gpsd
+	set gpsd.core.device='/dev/ttyS0'
+	set gpsd.core.port='2947'
+	set gpsd.core.enabled='true'
+	set gpsd.core.listen_globally='false'
+EOF
+
+uci commit gpsd
+
+if [ -x /etc/init.d/gpsd ]; then
+	/etc/init.d/gpsd restart
+fi
+
+exit 0

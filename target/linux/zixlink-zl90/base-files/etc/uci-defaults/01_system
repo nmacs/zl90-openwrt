@@ -2,6 +2,7 @@
 
 uci set system.@system[-1].zonename="Europe/Moscow"
 uci set system.@system[-1].timezone="MSK-3"
+uci set system.@system[-1].ttylogin="1"
 uci commit
 
 exit 0
